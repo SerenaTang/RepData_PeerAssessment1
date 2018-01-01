@@ -7,17 +7,51 @@ output:
 
 
 ## Loading and preprocessing the data
+```{r, echo=TRUE, results="asis"}
+setwd("/Users/serenatang/Coursera/RepData_PeerAssessment1")
+# Reads data from zip and csv
+unzip("activity.zip")
+activity <- read.csv("activity.csv")
 
+# Shows what read data looks like
+library(xtable)
+head.activity <- xtable(head(activity))
+print(head.activity, type="html")
+```
 
-
+  
 ## What is mean total number of steps taken per day?
+```{r, echo=TRUE, results="asis"}
+# 1a. Calculates the total number of steps taken per day
+stepsPerDay <- with(activity, tapply(steps, date, sum, na.rm=TRUE))
+head.stepsPerDay <- xtable(as.data.frame(head(stepsPerDay)))
+print(head.stepsPerDay, type="html")
 
+
+# 1b. Draws historgram of total number of steps taken each day
+hist(stepsPerDay, 
+        main = "Distribution of Total Number of Steps Per Day", 
+        xlab="Steps Per Day", 
+        ylab="Number of Days")
+          
+
+# 2a. Calculates and report the mean total number of 
+#     steps taken per day
+mean(stepsPerDay)
+
+
+# 2b. Calculates and report the median total number of 
+#     steps taken per day
+median(stepsPerDay)
+```
 
 
 ## What is the average daily activity pattern?
+```{r}
+#Make a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and #the average number of steps taken, averaged across all days (y-axis)
 
-
-
+#Which 5-minute interval, on average across all the days in the dataset, contains #the maximum number of steps?
+```
 ## Imputing missing values
 
 
