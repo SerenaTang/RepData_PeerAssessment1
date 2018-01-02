@@ -8,7 +8,6 @@ output:
 
 ## Loading and preprocessing the data
 ```{r, echo=TRUE, results="asis"}
-setwd("/Users/serenatang/Coursera/RepData_PeerAssessment1")
 # Reads data from zip and csv
 unzip("activity.zip")
 activity <- read.csv("activity.csv")
@@ -47,13 +46,98 @@ median(stepsPerDay)
 
 
 ## What is the average daily activity pattern?
-```{r}
-#Make a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and #the average number of steps taken, averaged across all days (y-axis)
+```{r, echo=TRUE, results="asis"}
+# 1. Make a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) 
+#    and the average number of steps taken, averaged across all days (y-axis)
+library("ggplot2")
+library("data.table")
+library("zoo")
+activity <- data.table(activity)
+stepsPerInterval <- activity[, byInterval:= mean(steps, na.rm=TRUE), by=list(interval)]
+a<- ggplot(stepsPerInterval, aes(x=interval, y=byInterval))
+a+geom_line(lwd=1)+
+        ggtitle("Average Daily Activity Pattern")+
+        labs(x="5-minute interval",y="Avg Number of Steps")
 
-#Which 5-minute interval, on average across all the days in the dataset, contains #the maximum number of steps?
+
+# 2. Which 5-minute interval, on average across all the days in the dataset,      
+#    contains the maximum number of steps?
+timeInterval<- unique(stepsPerInterval$interval[stepsPerInterval$byInterval==max(stepsPerInterval$byInterval)])
+
 ```
-## Imputing missing values
+On average across all the days in the dataset, the 5-minute interval beginning at `timeInterval` contains the maximum number of steps.
 
+## Imputing missing values
+```{r, echo=TRUE, results="asis"}
+# 1. Calculate and report the total number of missing values in the dataset (i.e. the total number of 
+#    rows with 𝙽𝙰s)
+lapply(activity, function(x) sum(is.na(x)))
+
+# 2. Devise a strategy for filling in all of the missing values in the dataset. The strategy does not 
+#    need to be sophisticated. For example, you could use the mean/median for that day, or the mean for 
+#    that 5-minute interval, etc.
+
+# Fills NAs with mean steps for interval
+activity.fill <- activity[, stepsFilled:= ifelse(is.na(steps), byInterval,steps)]
+
+# 3. Create a new dataset that is equal to the original dataset but with the missing data filled in.
+activity.fill$date <-as.Date(activity.fill$date)
+activity.fill$interval <-as.factor(activity.fill$interval)
+
+activity.new <- data.table(cbind(activity.fill$stepsFilled, activity.fill$date, activity.fill$interval))
+setnames(activity.new, c("steps","date", "interval"))
+activity.new$date <-as.Date(activity.new$date)
+
+head.activity.new <- xtable(as.data.frame(head(activity.new)))
+print(head.activity.new, type="html")
+
+
+#  4. Make a histogram of the total number of steps taken each day and calculate and report the mean 
+#     and median total number of steps taken per day. Do these values differ from the estimates from 
+#     the first part of the assignment? What is the impact of imputing missing data on the estimates 
+#     of the total daily number of steps?
+
+# Makes histogram of the total number of steps taken each day
+stepsPerDay.new <- with(activity.new, tapply(steps, date, sum, na.rm=TRUE))
+hist(stepsPerDay.new, 
+        main = "Distribution of Total Number of Steps Per Day", 
+        xlab="Steps Per Day", 
+        ylab="Number of Days")
+          
+# Calculates and report the mean total number of steps taken per day
+mean(stepsPerDay.new)
+
+# Calculates and report the median total number of steps taken per day
+median(stepsPerDay.new)
+
+# Check whether means are the same
+mean(stepsPerDay.new) == mean(stepsPerDay) 
+meanSteps <- ifelse(mean(stepsPerDay.new) > mean(stepsPerDay), "higher", "lower" )
+
+# Check whether means are the same
+median(stepsPerDay.new) == median(stepsPerDay) 
+medianSteps <- ifelse(median(stepsPerDay.new) > median(stepsPerDay) , "higher", "lower" )
+```
+The impact of imputing missing data makes the mean number of daily steps `r meanSteps`, and the median `r medianSteps`.
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
+```{r, echo=TRUE, results="asis"}
+# 1. Create a new factor variable in the dataset with two levels – “weekday” and “weekend” indicating 
+#    whether a given date is a weekday or weekend day.
+activity.new[,weekday:=ifelse(grepl("Saturday|Sunday",weekdays(date)),"weekend", "weekday")]
+
+# 2. Make a panel plot containing a time series plot (i.e. 𝚝𝚢𝚙𝚎 = "𝚕") of the 5-minute interval (x-
+#    axis) and the average number of steps taken, averaged across all weekday days or weekend days 
+#    (y-axis). See the README file in the GitHub repository to see an example of what this plot should 
+#    look like using simulated data.
+
+steps <- activity.new[, byInterval:= mean(steps, na.rm=TRUE), by=list(interval, weekday)]
+b<- ggplot(steps, aes(x=interval, y=byInterval))
+b+geom_line(lwd=1)+
+        facet_grid(weekday~.)+
+        ggtitle("Average Daily Activity Pattern Across Weekdays and Weekends")+
+        labs(x="5-minute interval",y="Number of Steps")
+
+
+```
